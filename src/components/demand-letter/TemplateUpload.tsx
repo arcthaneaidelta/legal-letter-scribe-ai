@@ -87,18 +87,23 @@ const TemplateUpload = () => {
                 <p className="text-lg font-medium">Upload Template</p>
                 <p className="text-gray-500">Drag and drop your .docx template or click to browse</p>
               </div>
-              <label className="mt-4 inline-block">
-                <Button variant="outline" className="cursor-pointer" disabled={isUploading}>
-                  {isUploading ? "Processing..." : "Choose File"}
-                </Button>
+              <div className="mt-4">
                 <input
                   type="file"
                   accept=".docx"
                   onChange={handleFileUpload}
                   className="hidden"
                   disabled={isUploading}
+                  id="template-upload"
                 />
-              </label>
+                <label htmlFor="template-upload">
+                  <Button variant="outline" className="cursor-pointer" disabled={isUploading} asChild>
+                    <span>
+                      {isUploading ? "Processing..." : "Choose File"}
+                    </span>
+                  </Button>
+                </label>
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
