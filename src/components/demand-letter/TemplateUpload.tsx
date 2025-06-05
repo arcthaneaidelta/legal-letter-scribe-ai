@@ -65,7 +65,7 @@ const TemplateUpload = () => {
       <div>
         <h2 className="text-2xl font-semibold mb-2">Template Management</h2>
         <p className="text-gray-600">
-          Upload your demand letter template in DOCX format. Use placeholders like {{plaintiff_name}}, {{defendant_name}}, etc. for dynamic content replacement.
+          Upload your demand letter template in DOCX format. Use placeholders like {"{{"} plaintiff_name {"}}"},  {"{{"} defendant_name {"}}"},  etc. for dynamic content replacement.
         </p>
       </div>
 
@@ -126,20 +126,20 @@ const TemplateUpload = () => {
           <div className="space-y-4">
             <div>
               <h4 className="font-medium mb-2">Supported Placeholder Format:</h4>
-              <p className="text-sm text-gray-600 mb-3">Use double curly braces for placeholders: <code className="bg-gray-100 px-2 py-1 rounded">{{`placeholder_name`}}</code></p>
+              <p className="text-sm text-gray-600 mb-3">Use double curly braces for placeholders: <code className="bg-gray-100 px-2 py-1 rounded">{"{{"} placeholder_name {"}}"}  </code></p>
             </div>
             
             <div>
               <h4 className="font-medium mb-2">Common Placeholders:</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>• {{`plaintiff_name`}} - Plaintiff's full name</div>
-                <div>• {{`defendant_name`}} - Defendant's full name</div>
-                <div>• {{`incident_date`}} - Date of incident</div>
-                <div>• {{`damages_amount`}} - Monetary damages</div>
-                <div>• {{`attorney_name`}} - Attorney's name</div>
-                <div>• {{`law_firm`}} - Law firm name</div>
-                <div>• {{`case_number`}} - Case reference number</div>
-                <div>• {{`injury_description`}} - Description of injuries</div>
+                <div>• {"{{"} plaintiff_name {"}}"}  - Plaintiff's full name</div>
+                <div>• {"{{"} defendant_name {"}}"}  - Defendant's full name</div>
+                <div>• {"{{"} incident_date {"}}"}  - Date of incident</div>
+                <div>• {"{{"} damages_amount {"}}"}  - Monetary damages</div>
+                <div>• {"{{"} attorney_name {"}}"}  - Attorney's name</div>
+                <div>• {"{{"} law_firm {"}}"}  - Law firm name</div>
+                <div>• {"{{"} case_number {"}}"}  - Case reference number</div>
+                <div>• {"{{"} injury_description {"}}"}  - Description of injuries</div>
               </div>
             </div>
 
