@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -227,18 +226,23 @@ Sincerely,
                 <Upload className="h-8 w-8 text-gray-400 mx-auto mb-3" />
                 <p className="font-medium mb-1">Upload CSV File</p>
                 <p className="text-sm text-gray-500 mb-3">Upload plaintiff data for processing</p>
-                <label>
-                  <Button variant="outline" disabled={isUploading}>
-                    {isUploading ? "Processing..." : "Choose CSV File"}
-                  </Button>
+                <div>
                   <input
                     type="file"
                     accept=".csv"
                     onChange={handleCsvUpload}
                     className="hidden"
                     disabled={isUploading}
+                    id="csv-upload"
                   />
-                </label>
+                  <label htmlFor="csv-upload">
+                    <Button variant="outline" disabled={isUploading} asChild>
+                      <span>
+                        {isUploading ? "Processing..." : "Choose CSV File"}
+                      </span>
+                    </Button>
+                  </label>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">

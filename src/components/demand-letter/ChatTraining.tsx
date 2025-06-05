@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,10 +42,10 @@ const ChatTraining = () => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       
-      if (!file.name.endsWith('.txt') && !file.name.endsWith('.docx')) {
+      if (!file.name.endsWith('.txt') && !file.name.endsWith('.docx') && !file.name.endsWith('.pdf')) {
         toast({
           title: "Invalid File Type",
-          description: "Please upload .txt or .docx files",
+          description: "Please upload .txt, .docx, or .pdf files",
           variant: "destructive"
         });
         continue;
@@ -203,7 +202,7 @@ How would you like me to improve the demand letter generation process?`;
               Training Documents
             </CardTitle>
             <CardDescription>
-              Upload existing demand letters to train the AI
+              Upload existing demand letters (.txt, .docx, .pdf) to train the AI
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -211,18 +210,21 @@ How would you like me to improve the demand letter generation process?`;
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
                 <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-600 mb-2">Upload demand letters for training</p>
-                <label>
-                  <Button variant="outline" size="sm">
-                    Choose Files
-                  </Button>
+                <div>
                   <input
                     type="file"
                     multiple
-                    accept=".txt,.docx"
+                    accept=".txt,.docx,.pdf"
                     onChange={handleDocumentUpload}
                     className="hidden"
+                    id="training-docs-upload"
                   />
-                </label>
+                  <label htmlFor="training-docs-upload">
+                    <Button variant="outline" size="sm" asChild>
+                      <span>Choose Files</span>
+                    </Button>
+                  </label>
+                </div>
               </div>
 
               {trainingDocs.length > 0 && (
