@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, FileText, Download, Eye, Edit3, Save, History } from "lucide-react";
+import { Upload, FileText, Download, Eye, Edit3, Save, History, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -25,7 +25,17 @@ const DemandLetterGenerator = () => {
   const [csvData, setCsvData] = useState<any[]>([]);
   const [selectedPlaintiff, setSelectedPlaintiff] = useState<number>(0);
   const [showPrevious, setShowPrevious] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(false);
+  const [hasTemplate, setHasTemplate] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check for API key and template
+    const apiKey = localStorage.getItem('openai_api_key');
+    const template = localStorage.getItem('demandLetterTemplate');
+    setHasApiKey(!!apiKey);
+    setHasTemplate(!!template);
+  }, []);
 
   const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -72,6 +82,16 @@ const DemandLetterGenerator = () => {
   };
 
   const generateDemandLetter = async () => {
+    const apiKey = localStorage.getItem('openai_api_key');
+    if (!apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please configure your OpenAI API key in Settings first",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const template = localStorage.getItem('demandLetterTemplate');
     if (!template) {
       toast({
@@ -93,61 +113,83 @@ const DemandLetterGenerator = () => {
 
     setIsGenerating(true);
 
-    // Simulate AI processing with OpenAI
-    setTimeout(() => {
+    try {
       const plaintiff = csvData[selectedPlaintiff];
-      const mockTemplate = `DEMAND LETTER
+      const instructions = localStorage.getItem('ai_instructions') || '';
+      
+      // Create the prompt for OpenAI
+      const prompt = `You are an AI assistant specialized in generating professional demand letters for legal proceedings.
 
-Date: ${new Date().toLocaleDateString()}
+Template File: ${template}
+Instructions: ${instructions}
 
-TO: {{defendant_name}}
+Plaintiff Data:
+${Object.entries(plaintiff).map(([key, value]) => `${key}: ${value}`).join('\n')}
 
-FROM: {{attorney_name}}, {{law_firm}}
+Please generate a professional demand letter using the uploaded template structure. Replace all placeholders with the appropriate data from the plaintiff information. Ensure the letter is legally sound, professionally formatted, and persuasive.
 
-RE: Demand for Payment - {{plaintiff_name}} v. {{defendant_name}}
-    Incident Date: {{incident_date}}
-    Claim Number: {{case_number}}
+Important:
+- Use formal legal language
+- Structure the letter with clear sections
+- Calculate damages appropriately
+- Maintain professional tone throughout
+- Ensure all placeholders are properly replaced
 
-Dear {{defendant_name}},
+Generate the complete demand letter:`;
 
-I represent {{plaintiff_name}} in connection with the incident that occurred on {{incident_date}}. 
-
-{{injury_description}}
-
-As a direct and proximate result of your negligence, my client sustained significant injuries and damages, including but not limited to:
-
-- Medical expenses
-- Lost wages  
-- Pain and suffering
-- Property damage
-
-The total amount of damages is {{damages_amount}}.
-
-DEMAND IS HEREBY MADE for payment of the sum of {{damages_amount}} to fully resolve this matter.
-
-This demand is made as a good faith effort to resolve this matter without litigation.
-
-Sincerely,
-
-{{attorney_name}}
-{{law_firm}}`;
-
-      // Replace placeholders with actual data
-      let processedLetter = mockTemplate;
-      Object.keys(plaintiff).forEach(key => {
-        const placeholder = `{{${key.toLowerCase().replace(/\s+/g, '_')}}}`;
-        processedLetter = processedLetter.replace(new RegExp(placeholder, 'g'), plaintiff[key] || `[${key}]`);
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4.1-2025-04-14',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an AI assistant specialized in generating professional demand letters for legal proceedings. Generate complete, professional demand letters based on templates and plaintiff data.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 2000,
+        }),
       });
 
-      setGeneratedLetter(processedLetter);
-      setEditableContent(processedLetter);
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const generatedContent = data.choices[0]?.message?.content || '';
+
+      if (!generatedContent) {
+        throw new Error('No content generated');
+      }
+
+      setGeneratedLetter(generatedContent);
+      setEditableContent(generatedContent);
       setIsGenerating(false);
       
       toast({
         title: "Demand Letter Generated",
         description: "Letter generated successfully using AI processing"
       });
-    }, 3000);
+
+    } catch (error) {
+      console.error('Error generating demand letter:', error);
+      setIsGenerating(false);
+      
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate demand letter. Please check your API key and try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const saveLetter = () => {
@@ -179,6 +221,8 @@ Sincerely,
     document.body.removeChild(element);
   };
 
+  const canGenerate = hasApiKey && hasTemplate && csvData.length > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -208,6 +252,41 @@ Sincerely,
           </Dialog>
         </div>
       </div>
+
+      {/* Requirements Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Generation Requirements</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`p-3 rounded-lg border ${hasApiKey ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+              <div className="flex items-center gap-2">
+                <Key className={`h-4 w-4 ${hasApiKey ? 'text-green-600' : 'text-red-600'}`} />
+                <span className={`text-sm font-medium ${hasApiKey ? 'text-green-800' : 'text-red-800'}`}>
+                  OpenAI API Key {hasApiKey ? '✓' : '✗'}
+                </span>
+              </div>
+            </div>
+            <div className={`p-3 rounded-lg border ${hasTemplate ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+              <div className="flex items-center gap-2">
+                <FileText className={`h-4 w-4 ${hasTemplate ? 'text-green-600' : 'text-red-600'}`} />
+                <span className={`text-sm font-medium ${hasTemplate ? 'text-green-800' : 'text-red-800'}`}>
+                  Template Uploaded {hasTemplate ? '✓' : '✗'}
+                </span>
+              </div>
+            </div>
+            <div className={`p-3 rounded-lg border ${csvData.length > 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+              <div className="flex items-center gap-2">
+                <Upload className={`h-4 w-4 ${csvData.length > 0 ? 'text-green-600' : 'text-red-600'}`} />
+                <span className={`text-sm font-medium ${csvData.length > 0 ? 'text-green-800' : 'text-red-800'}`}>
+                  CSV Data {csvData.length > 0 ? '✓' : '✗'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
@@ -291,11 +370,17 @@ Sincerely,
             <div className="space-y-4">
               <Button 
                 onClick={generateDemandLetter}
-                disabled={!csvFile || csvData.length === 0 || isGenerating}
+                disabled={!canGenerate || isGenerating}
                 className="w-full"
               >
                 {isGenerating ? "Generating with AI..." : "Generate New Demand Letter"}
               </Button>
+              
+              {!canGenerate && (
+                <p className="text-sm text-red-600">
+                  Please ensure API key is configured, template is uploaded, and CSV data is loaded.
+                </p>
+              )}
               
               {generatedLetter && (
                 <div className="flex gap-2">
