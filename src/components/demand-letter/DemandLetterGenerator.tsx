@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +31,7 @@ const DemandLetterGenerator = () => {
   const [hasApiKey, setHasApiKey] = useState(false);
   const [hasTemplate, setHasTemplate] = useState(false);
   const [templateContent, setTemplateContent] = useState<string>("");
-  const [outputFormat, setOutputFormat] = useState<'pdf' | 'docx'>('docx');
+  const [outputFormat, setOutputFormat = useState<'pdf' | 'docx'>('docx');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -185,30 +184,26 @@ const DemandLetterGenerator = () => {
       const plaintiff = csvData[selectedPlaintiff];
       const instructions = localStorage.getItem('ai_instructions') || '';
       
-      // Create a condensed template by extracting only key sections to reduce token count
-      const templateSections = templateContent.split('\n\n');
-      const keyTemplate = templateSections.slice(0, 10).join('\n\n') + '\n\n[...template continues with legal sections...]';
-      
-      // Enhanced prompt for better template adherence with token reduction
-      const prompt = `Generate a demand letter using the template structure. Replace ONLY highlighted sections, bracketed placeholders, and starred sections.
+      // Create a more comprehensive prompt that emphasizes template preservation
+      const prompt = `You must use the EXACT template format provided below. Your ONLY job is to replace highlighted text, bracketed placeholders like [PLACEHOLDER], and any sections marked with asterisks ***TEXT*** with appropriate client data.
 
-TEMPLATE EXCERPT:
-${keyTemplate}
+CRITICAL RULES:
+1. Preserve ALL formatting, spacing, and paragraph structure EXACTLY as shown in template
+2. Replace ONLY highlighted sections, [BRACKETED PLACEHOLDERS], and ***starred sections***
+3. Keep ALL other text identical to the template
+4. Maintain exact line breaks, spacing, and document structure
+5. Do not add, remove, or modify any text except the designated replacement sections
+
+TEMPLATE:
+${templateContent}
 
 CLIENT DATA:
 ${Object.entries(plaintiff).map(([key, value]) => `${key}: ${value}`).join('\n')}
 
-INSTRUCTIONS:
+ADDITIONAL INSTRUCTIONS:
 ${instructions}
 
-REQUIREMENTS:
-1. Maintain EXACT template formatting
-2. Replace only: [PLACEHOLDERS], ***starred text***, and highlighted sections
-3. Keep all legal language and structure identical
-4. Map client data intelligently to template fields
-5. Calculate damages where applicable
-
-Generate the complete demand letter with precise template formatting:`;
+Generate the complete demand letter maintaining EXACT template formatting and structure:`;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -221,7 +216,7 @@ Generate the complete demand letter with precise template formatting:`;
           messages: [
             {
               role: 'system',
-              content: 'You are a legal document processor. Maintain exact template formatting while only replacing designated fill-in sections.'
+              content: 'You are a legal document formatter. You must preserve exact template formatting while only replacing designated highlighted sections, bracketed placeholders, and starred text. Do not modify any other part of the template.'
             },
             {
               role: 'user',
@@ -229,7 +224,7 @@ Generate the complete demand letter with precise template formatting:`;
             }
           ],
           temperature: 0.1,
-          max_tokens: 3000,
+          max_tokens: 4000,
         }),
       });
 
@@ -258,7 +253,7 @@ Generate the complete demand letter with precise template formatting:`;
       
       toast({
         title: "Demand Letter Generated",
-        description: "Letter generated successfully with template formatting preserved"
+        description: "Letter generated with precise template formatting preserved"
       });
 
     } catch (error) {
@@ -489,7 +484,7 @@ Generate the complete demand letter with precise template formatting:`;
               Letter Generation
             </CardTitle>
             <CardDescription>
-              Generate demand letters with precise template formatting
+              Generate demand letters with exact template formatting preserved
             </CardDescription>
           </CardHeader>
           <CardContent>
