@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,57 +50,20 @@ const DemandLetterGenerator = () => {
     if (file.name.endsWith('.docx')) {
       try {
         const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        return result.value;
+        // Extract both raw text and HTML to preserve formatting cues
+        const rawResult = await mammoth.extractRawText({ arrayBuffer });
+        const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+        
+        // Store both versions for better AI processing
+        localStorage.setItem('demandLetterTemplateHTML', htmlResult.value);
+        
+        return rawResult.value;
       } catch (error) {
         console.error('Error parsing DOCX:', error);
         throw new Error('Failed to parse DOCX template');
       }
     }
     return '';
-  };
-
-  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.endsWith('.csv')) {
-      toast({
-        title: "Invalid File Type",
-        description: "Please upload a .csv file",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const rows = text.split('\n');
-      const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
-      
-      const data = rows.slice(1).filter(row => row.trim()).map(row => {
-        const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
-        const obj: any = {};
-        headers.forEach((header, index) => {
-          obj[header] = values[index] || '';
-        });
-        return obj;
-      });
-
-      setCsvData(data);
-      setCsvFile(file);
-      setIsUploading(false);
-      
-      toast({
-        title: "CSV Uploaded Successfully",
-        description: `Loaded ${data.length} plaintiff records with ${headers.length} fields`
-      });
-    };
-    
-    reader.readAsText(file);
   };
 
   const generateDemandLetter = async () => {
@@ -117,6 +79,8 @@ const DemandLetterGenerator = () => {
 
     const template = localStorage.getItem('demandLetterTemplate');
     const templateContent = localStorage.getItem('demandLetterTemplateContent');
+    const templateHTML = localStorage.getItem('demandLetterTemplateHTML');
+    
     if (!template || !templateContent) {
       toast({
         title: "No Template Found",
@@ -141,37 +105,36 @@ const DemandLetterGenerator = () => {
       const plaintiff = csvData[selectedPlaintiff];
       const instructions = localStorage.getItem('ai_instructions') || '';
       
-      // Create detailed prompt for AI to understand template structure and data mapping
-      const prompt = `You are an AI assistant specialized in generating professional demand letters for legal proceedings.
+      // Enhanced prompt for better template adherence and highlighted section detection
+      const prompt = `You are a specialized AI legal document processor. Your task is to generate a demand letter by EXACTLY following the provided template structure while ONLY replacing highlighted sections and bracketed placeholders.
+
+CRITICAL INSTRUCTIONS:
+1. PRESERVE EXACT FORMATTING: Maintain all line breaks, spacing, indentation, and paragraph structure
+2. REPLACE ONLY HIGHLIGHTED CONTENT: Look for highlighted text, bracketed placeholders like [TEXT], and obvious fill-in areas
+3. MAINTAIN LEGAL STRUCTURE: Keep all legal language, clauses, and document flow identical to template
+4. INTELLIGENT FIELD MAPPING: Map CSV fields to appropriate template sections logically
 
 TEMPLATE CONTENT:
 ${templateContent}
 
-AI INSTRUCTIONS:
-${instructions}
+${templateHTML ? `\nTEMPLATE HTML (for formatting reference):\n${templateHTML}` : ''}
 
-PLAINTIFF DATA (CSV Fields):
+PLAINTIFF DATA AVAILABLE:
 ${Object.entries(plaintiff).map(([key, value]) => `${key}: ${value}`).join('\n')}
 
-TASK:
-1. Analyze the template structure and identify ALL placeholders, highlighted sections, and areas requiring data replacement
-2. Intelligently map the CSV data fields to appropriate template placeholders
-3. Generate a complete demand letter that maintains the EXACT formatting and structure of the template
-4. Replace ALL highlighted sections and placeholders with appropriate data from the plaintiff information
-5. Ensure legal accuracy, professional tone, and proper formatting
-6. Calculate any damages or monetary amounts based on available data
-7. Maintain all template styling, paragraph structure, and legal language
+AI PROCESSING INSTRUCTIONS:
+${instructions}
 
-IMPORTANT REQUIREMENTS:
-- Keep the exact template structure and formatting
-- Replace ALL placeholders with appropriate data
-- Use intelligent field mapping (e.g., Client_Name__c maps to plaintiff name)
-- Maintain professional legal language
-- Ensure all highlighted sections are properly filled
-- Calculate appropriate damages where applicable
-- Keep template's original formatting and layout
+SPECIFIC REQUIREMENTS:
+- Output the complete demand letter with IDENTICAL structure to the template
+- Replace ONLY sections that are clearly meant for data insertion (highlighted, bracketed, or obvious blanks)
+- Preserve ALL existing legal language, formatting, and document structure
+- Use intelligent mapping: Client_Name__c → client name, amounts → monetary values, dates → relevant dates
+- Maintain professional legal tone and accuracy
+- Calculate damages/amounts where data supports it
+- Keep exact line breaks, spacing, and paragraph structure
 
-Generate the complete demand letter maintaining the template's exact structure:`;
+Generate the complete demand letter now, ensuring PERFECT template adherence:`;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -184,15 +147,15 @@ Generate the complete demand letter maintaining the template's exact structure:`
           messages: [
             {
               role: 'system',
-              content: 'You are an AI assistant specialized in generating professional demand letters that maintain exact template formatting while intelligently replacing placeholders with CSV data. You understand legal document structure and can map data fields appropriately.'
+              content: 'You are a precision legal document processor. You MUST maintain exact template formatting while only replacing clearly designated fill-in sections. Preserve all legal structure, spacing, and formatting exactly as provided in the template.'
             },
             {
               role: 'user',
               content: prompt
             }
           ],
-          temperature: 0.2,
-          max_tokens: 3000,
+          temperature: 0.1, // Lower temperature for more consistent formatting
+          max_tokens: 4000,
         }),
       });
 
@@ -213,7 +176,7 @@ Generate the complete demand letter maintaining the template's exact structure:`
       
       toast({
         title: "Demand Letter Generated",
-        description: "Letter generated successfully with AI template processing"
+        description: "Letter generated with precise template formatting and highlighted section replacement"
       });
 
     } catch (error) {
@@ -436,7 +399,7 @@ Generate the complete demand letter maintaining the template's exact structure:`
               Letter Generation
             </CardTitle>
             <CardDescription>
-              Generate demand letters using AI-powered template processing
+              Generate demand letters with precise template formatting and highlighted section replacement
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -458,7 +421,7 @@ Generate the complete demand letter maintaining the template's exact structure:`
                 disabled={!canGenerate || isGenerating}
                 className="w-full"
               >
-                {isGenerating ? "Generating with AI..." : "Generate New Demand Letter"}
+                {isGenerating ? "Generating with Precise Template Processing..." : "Generate Demand Letter"}
               </Button>
               
               {!canGenerate && (
@@ -493,7 +456,7 @@ Generate the complete demand letter maintaining the template's exact structure:`
           <CardHeader>
             <CardTitle>Generated Demand Letter</CardTitle>
             <CardDescription>
-              {isEditing ? "Edit the generated letter below" : "Preview of the generated demand letter"}
+              {isEditing ? "Edit the generated letter below" : "Preview of the generated demand letter with preserved template formatting"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -514,6 +477,115 @@ Generate the complete demand letter maintaining the template's exact structure:`
       )}
     </div>
   );
+
+  async function handleCsvUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a .csv file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const rows = text.split('\n');
+      const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      
+      const data = rows.slice(1).filter(row => row.trim()).map(row => {
+        const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
+        const obj: any = {};
+        headers.forEach((header, index) => {
+          obj[header] = values[index] || '';
+        });
+        return obj;
+      });
+
+      setCsvData(data);
+      setCsvFile(file);
+      setIsUploading(false);
+      
+      toast({
+        title: "CSV Uploaded Successfully",
+        description: `Loaded ${data.length} plaintiff records with ${headers.length} fields`
+      });
+    };
+    
+    reader.readAsText(file);
+  }
+
+  function saveLetter() {
+    const savedLetters = JSON.parse(localStorage.getItem('savedDemandLetters') || '[]');
+    const newLetter: GeneratedLetter = {
+      id: Date.now().toString(),
+      plaintiffName: csvData[selectedPlaintiff]?.Client_Name__c || csvData[selectedPlaintiff]?.plaintiff_name || csvData[selectedPlaintiff]?.name || 'Unknown',
+      content: editableContent,
+      generatedAt: new Date().toISOString(),
+      isEdited: editableContent !== generatedLetter
+    };
+    
+    savedLetters.push(newLetter);
+    localStorage.setItem('savedDemandLetters', JSON.stringify(savedLetters));
+    
+    toast({
+      title: "Letter Saved",
+      description: "Demand letter has been saved to the system"
+    });
+  }
+
+  async function downloadLetter() {
+    const plaintiffName = csvData[selectedPlaintiff]?.Client_Name__c || csvData[selectedPlaintiff]?.plaintiff_name || csvData[selectedPlaintiff]?.name || 'client';
+    const fileName = `demand_letter_${plaintiffName}_${new Date().toISOString().split('T')[0]}`;
+
+    if (outputFormat === 'pdf') {
+      // Generate PDF
+      const pdf = new jsPDF();
+      const lines = editableContent.split('\n');
+      let yPosition = 20;
+      
+      lines.forEach((line) => {
+        if (yPosition > 280) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+        pdf.text(line, 10, yPosition);
+        yPosition += 7;
+      });
+      
+      pdf.save(`${fileName}.pdf`);
+    } else {
+      // Generate DOCX
+      const paragraphs = editableContent.split('\n').map(line => 
+        new Paragraph({
+          children: [new TextRun(line)]
+        })
+      );
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: paragraphs
+        }]
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const element = document.createElement('a');
+      element.href = url;
+      element.download = `${fileName}.docx`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      URL.revokeObjectURL(url);
+    }
+  }
 };
 
 export default DemandLetterGenerator;

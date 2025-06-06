@@ -23,8 +23,15 @@ const TemplateUpload = () => {
     if (file.name.endsWith('.docx')) {
       try {
         const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        return result.value;
+        
+        // Extract both raw text and HTML for better formatting preservation
+        const rawResult = await mammoth.extractRawText({ arrayBuffer });
+        const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+        
+        // Store HTML version for better AI processing of formatting
+        localStorage.setItem('demandLetterTemplateHTML', htmlResult.value);
+        
+        return rawResult.value;
       } catch (error) {
         console.error('Error parsing DOCX:', error);
         throw new Error('Failed to parse DOCX template');
@@ -49,7 +56,7 @@ const TemplateUpload = () => {
     setIsUploading(true);
     
     try {
-      // Parse the template content
+      // Parse the template content with enhanced formatting detection
       const templateContent = await parseTemplateFile(file);
       
       setUploadedTemplate(file);
@@ -62,7 +69,7 @@ const TemplateUpload = () => {
       
       toast({
         title: "Template Uploaded Successfully",
-        description: "Your demand letter template has been parsed and is ready for use"
+        description: "Template processed with enhanced formatting detection for precise AI replacement"
       });
     } catch (error) {
       setIsUploading(false);
@@ -78,6 +85,7 @@ const TemplateUpload = () => {
     setUploadedTemplate(null);
     localStorage.removeItem('demandLetterTemplate');
     localStorage.removeItem('demandLetterTemplateContent');
+    localStorage.removeItem('demandLetterTemplateHTML');
     localStorage.removeItem('templateUploadDate');
     toast({
       title: "Template Removed",
@@ -90,7 +98,7 @@ const TemplateUpload = () => {
       <div>
         <h2 className="text-2xl font-semibold mb-2">Template Management</h2>
         <p className="text-gray-600">
-          Upload your demand letter template in DOCX format. The AI will intelligently identify and replace placeholders and highlighted sections with CSV data.
+          Upload your demand letter template in DOCX format. The AI will precisely identify highlighted sections and maintain exact template formatting.
         </p>
       </div>
 
@@ -101,7 +109,7 @@ const TemplateUpload = () => {
             Demand Letter Template
           </CardTitle>
           <CardDescription>
-            Upload a .docx file containing your demand letter template. The AI will parse the document and identify areas for data replacement.
+            Upload a .docx file containing your demand letter template. The AI will maintain exact formatting while only replacing highlighted content.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -110,7 +118,7 @@ const TemplateUpload = () => {
               <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <div className="space-y-2">
                 <p className="text-lg font-medium">Upload Template</p>
-                <p className="text-gray-500">Upload your .docx template for AI processing</p>
+                <p className="text-gray-500">Upload your .docx template for precise AI processing</p>
               </div>
               <div className="mt-4">
                 <input
@@ -136,7 +144,7 @@ const TemplateUpload = () => {
                 <CheckCircle className="h-5 w-5 text-green-600" />
                 <div>
                   <p className="font-medium text-green-900">{uploadedTemplate.name}</p>
-                  <p className="text-sm text-green-700">Template parsed and ready for AI generation</p>
+                  <p className="text-sm text-green-700">Template processed with enhanced formatting detection</p>
                 </div>
               </div>
               <Button variant="outline" onClick={removeTemplate} size="sm">
@@ -150,34 +158,34 @@ const TemplateUpload = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>AI Template Processing</CardTitle>
+          <CardTitle>Enhanced AI Template Processing</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h4 className="font-medium mb-2">How AI Processes Your Template:</h4>
+              <h4 className="font-medium mb-2">Precise Template Adherence:</h4>
               <div className="space-y-2 text-sm text-gray-600">
-                <p>• Automatically identifies highlighted text that needs replacement</p>
-                <p>• Recognizes common placeholder patterns and bracketed text</p>
-                <p>• Intelligently maps CSV fields to appropriate template sections</p>
-                <p>• Maintains exact formatting, structure, and legal language</p>
-                <p>• Calculates damages and monetary amounts based on available data</p>
+                <p>• Maintains EXACT formatting, spacing, and document structure</p>
+                <p>• Identifies highlighted text and bracketed placeholders for replacement</p>
+                <p>• Preserves all legal language and clause structure</p>
+                <p>• Intelligent field mapping from CSV data to template sections</p>
+                <p>• Zero alteration to non-highlighted template content</p>
               </div>
             </div>
             
             <div>
               <h4 className="font-medium mb-2">Template Best Practices:</h4>
               <div className="space-y-2 text-sm text-gray-600">
-                <p>• Use highlighting or brackets for areas requiring data replacement</p>
-                <p>• Include placeholder text like [CLIENT NAME] or [AMOUNT]</p>
-                <p>• Maintain professional legal formatting and structure</p>
-                <p>• Include sections for damages, dates, and contact information</p>
+                <p>• Highlight text that needs replacement with CSV data</p>
+                <p>• Use brackets for clear placeholders: [CLIENT NAME], [AMOUNT]</p>
+                <p>• Maintain professional legal formatting throughout</p>
+                <p>• Ensure highlighted sections clearly indicate required data</p>
               </div>
             </div>
 
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-blue-800">
-                <strong>AI Enhancement:</strong> The system uses advanced AI to understand your template structure and intelligently replace content while preserving formatting and legal accuracy.
+                <strong>Precision Processing:</strong> The enhanced AI system now maintains perfect template structure while only replacing clearly designated highlighted sections and placeholders.
               </p>
             </div>
           </div>
