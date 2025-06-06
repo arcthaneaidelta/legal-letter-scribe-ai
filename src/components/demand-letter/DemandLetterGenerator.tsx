@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,6 +65,49 @@ const DemandLetterGenerator = () => {
       }
     }
     return '';
+  };
+
+  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a .csv file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const rows = text.split('\n');
+      const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      
+      const data = rows.slice(1).filter(row => row.trim()).map(row => {
+        const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
+        const obj: any = {};
+        headers.forEach((header, index) => {
+          obj[header] = values[index] || '';
+        });
+        return obj;
+      });
+
+      setCsvData(data);
+      setCsvFile(file);
+      setIsUploading(false);
+      
+      toast({
+        title: "CSV Uploaded Successfully",
+        description: `Loaded ${data.length} plaintiff records with ${headers.length} fields`
+      });
+    };
+    
+    reader.readAsText(file);
   };
 
   const generateDemandLetter = async () => {
@@ -477,115 +521,6 @@ Generate the complete demand letter now, ensuring PERFECT template adherence:`;
       )}
     </div>
   );
-
-  async function handleCsvUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.endsWith('.csv')) {
-      toast({
-        title: "Invalid File Type",
-        description: "Please upload a .csv file",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const rows = text.split('\n');
-      const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
-      
-      const data = rows.slice(1).filter(row => row.trim()).map(row => {
-        const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
-        const obj: any = {};
-        headers.forEach((header, index) => {
-          obj[header] = values[index] || '';
-        });
-        return obj;
-      });
-
-      setCsvData(data);
-      setCsvFile(file);
-      setIsUploading(false);
-      
-      toast({
-        title: "CSV Uploaded Successfully",
-        description: `Loaded ${data.length} plaintiff records with ${headers.length} fields`
-      });
-    };
-    
-    reader.readAsText(file);
-  }
-
-  function saveLetter() {
-    const savedLetters = JSON.parse(localStorage.getItem('savedDemandLetters') || '[]');
-    const newLetter: GeneratedLetter = {
-      id: Date.now().toString(),
-      plaintiffName: csvData[selectedPlaintiff]?.Client_Name__c || csvData[selectedPlaintiff]?.plaintiff_name || csvData[selectedPlaintiff]?.name || 'Unknown',
-      content: editableContent,
-      generatedAt: new Date().toISOString(),
-      isEdited: editableContent !== generatedLetter
-    };
-    
-    savedLetters.push(newLetter);
-    localStorage.setItem('savedDemandLetters', JSON.stringify(savedLetters));
-    
-    toast({
-      title: "Letter Saved",
-      description: "Demand letter has been saved to the system"
-    });
-  }
-
-  async function downloadLetter() {
-    const plaintiffName = csvData[selectedPlaintiff]?.Client_Name__c || csvData[selectedPlaintiff]?.plaintiff_name || csvData[selectedPlaintiff]?.name || 'client';
-    const fileName = `demand_letter_${plaintiffName}_${new Date().toISOString().split('T')[0]}`;
-
-    if (outputFormat === 'pdf') {
-      // Generate PDF
-      const pdf = new jsPDF();
-      const lines = editableContent.split('\n');
-      let yPosition = 20;
-      
-      lines.forEach((line) => {
-        if (yPosition > 280) {
-          pdf.addPage();
-          yPosition = 20;
-        }
-        pdf.text(line, 10, yPosition);
-        yPosition += 7;
-      });
-      
-      pdf.save(`${fileName}.pdf`);
-    } else {
-      // Generate DOCX
-      const paragraphs = editableContent.split('\n').map(line => 
-        new Paragraph({
-          children: [new TextRun(line)]
-        })
-      );
-
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: paragraphs
-        }]
-      });
-
-      const blob = await Packer.toBlob(doc);
-      const url = URL.createObjectURL(blob);
-      const element = document.createElement('a');
-      element.href = url;
-      element.download = `${fileName}.docx`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-      URL.revokeObjectURL(url);
-    }
-  }
 };
 
 export default DemandLetterGenerator;
