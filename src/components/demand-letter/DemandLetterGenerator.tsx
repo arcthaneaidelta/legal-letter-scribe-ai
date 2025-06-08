@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +32,7 @@ const DemandLetterGenerator = () => {
   const [hasApiKey, setHasApiKey] = useState(false);
   const [hasTemplate, setHasTemplate] = useState(false);
   const [templateContent, setTemplateContent] = useState<string>("");
-  const [outputFormat, setOutputFormat = useState<'pdf' | 'docx'>('docx');
+  const [outputFormat, setOutputFormat] = useState<'pdf' | 'docx'>('docx');
   const { toast } = useToast();
 
   useEffect(() => {
