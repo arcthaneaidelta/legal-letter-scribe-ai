@@ -1,3 +1,4 @@
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import TemplateUpload from "@/components/demand-letter/TemplateUpload";
@@ -6,11 +7,15 @@ import EnhancedDemandGenerator from "@/components/demand-letter/EnhancedDemandGe
 import ChatTraining from "@/components/demand-letter/ChatTraining";
 import Settings from "@/components/demand-letter/Settings";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 
-const DemandLetterApp = () => {
+interface DemandLetterAppProps {
+  onLogout?: () => void;
+}
+
+const DemandLetterApp = ({ onLogout }: DemandLetterAppProps) => {
   const [csvData, setCsvData] = useState<any[]>([]);
   const [selectedPlaintiff, setSelectedPlaintiff] = useState(0);
 
@@ -35,6 +40,17 @@ const DemandLetterApp = () => {
                 </p>
               </div>
             </div>
+            {onLogout && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            )}
           </div>
         </div>
       </div>
