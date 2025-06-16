@@ -98,11 +98,6 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Demo Credentials:</p>
-            <p>Username: <code className="bg-gray-100 px-1 rounded">admin</code></p>
-            <p>Password: <code className="bg-gray-100 px-1 rounded">admin@legalcorner123</code></p>
-          </div>
         </CardContent>
       </Card>
     </div>
