@@ -49,7 +49,7 @@ export class AILearningEngine {
           patterns[patternKey].usageCount;
       }
       
-      // Update common mappings
+      // Update common mappings - fix the type error here
       Object.entries(data.placeholderMappings).forEach(([placeholder, value]) => {
         if (!patterns[patternKey].commonMappings[placeholder]) {
           patterns[patternKey].commonMappings[placeholder] = [];
@@ -59,10 +59,16 @@ export class AILearningEngine {
         }
       });
     } else {
+      // Fix the type error - convert string values to string arrays
+      const commonMappings: { [key: string]: string[] } = {};
+      Object.entries(data.placeholderMappings).forEach(([key, value]) => {
+        commonMappings[key] = [value];
+      });
+
       patterns[patternKey] = {
         placeholders,
         structure: data.templateStructure,
-        commonMappings: { ...data.placeholderMappings },
+        commonMappings,
         successRate: data.userFeedback === 'positive' ? 1 : 0.5,
         usageCount: 1
       };
