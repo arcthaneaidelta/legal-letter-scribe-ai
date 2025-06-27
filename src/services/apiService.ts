@@ -1,12 +1,13 @@
 const API_BASE_URL = 'https://77.37.120.36:8000';
 
 export interface User {
+  name: string;
   email: string;
   password: string;
 }
 
 export interface LoginCredentials {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -125,7 +126,7 @@ Current setup: ${window.location.protocol} frontend → ${url}`
 
   // Auth endpoints
   async register(userData: User): Promise<ApiResponse> {
-    console.log('Attempting registration with:', { email: userData.email });
+    console.log('Attempting registration with:', { name: userData.name, email: userData.email });
     
     return this.makeRequest(`${API_BASE_URL}/api/v1/register`, {
       method: 'POST',
@@ -133,12 +134,16 @@ Current setup: ${window.location.protocol} frontend → ${url}`
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(userData)
+      body: JSON.stringify({
+        name: userData.name,
+        email: userData.email,
+        password: userData.password
+      })
     });
   }
 
   async login(credentials: LoginCredentials): Promise<ApiResponse> {
-    console.log('Attempting login with email:', credentials.email);
+    console.log('Attempting login with username:', credentials.username);
     
     return this.makeRequest(`${API_BASE_URL}/api/v1/login`, {
       method: 'POST',
@@ -146,7 +151,10 @@ Current setup: ${window.location.protocol} frontend → ${url}`
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify(credentials)
+      body: JSON.stringify({
+        username: credentials.username,
+        password: credentials.password
+      })
     });
   }
 

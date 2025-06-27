@@ -14,6 +14,7 @@ interface LoginScreenProps {
 
 const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -51,6 +52,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     try {
       if (isSignUp) {
         // Sign Up validation
+        if (!name.trim()) {
+          toast.error('Name is required');
+          setIsLoading(false);
+          return;
+        }
+        
         if (!email.trim()) {
           toast.error('Email is required');
           setIsLoading(false);
@@ -71,6 +78,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         console.log('Starting registration process...');
         const response = await apiService.register({ 
+          name: name.trim(),
           email: email.trim(), 
           password 
         });
@@ -82,6 +90,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         } else {
           toast.success('Registration successful! Please sign in with your credentials.');
           setIsSignUp(false);
+          setName('');
           setPassword('');
           setConfirmPassword('');
         }
@@ -101,7 +110,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         console.log('Starting login process...');
         const response = await apiService.login({ 
-          email: email.trim(), 
+          username: email.trim(), // Send email as username
           password 
         });
         
@@ -128,6 +137,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
   const switchMode = () => {
     setIsSignUp(!isSignUp);
+    setName('');
     setPassword('');
     setConfirmPassword('');
     setEmail('');
@@ -168,6 +178,20 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
