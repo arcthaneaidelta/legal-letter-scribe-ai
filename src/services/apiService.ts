@@ -73,7 +73,14 @@ class ApiService {
         let errorMessage = `HTTP ${response.status}`;
         try {
           const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.detail || errorJson.message || errorMessage;
+          // Handle FastAPI validation errors
+          if (errorJson.detail && Array.isArray(errorJson.detail)) {
+            errorMessage = errorJson.detail.map((err: any) => err.msg).join(', ');
+          } else if (errorJson.detail) {
+            errorMessage = errorJson.detail;
+          } else if (errorJson.message) {
+            errorMessage = errorJson.message;
+          }
         } catch {
           errorMessage = errorText || errorMessage;
         }
@@ -145,16 +152,17 @@ Current setup: ${window.location.protocol} frontend → ${url}`
   async login(credentials: LoginCredentials): Promise<ApiResponse> {
     console.log('Attempting login with username:', credentials.username);
     
+    // Try form-data format first (common for OAuth2)
+    const formData = new FormData();
+    formData.append('username', credentials.username);
+    formData.append('password', credentials.password);
+    
     return this.makeRequest(`${API_BASE_URL}/api/v1/login`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({
-        username: credentials.username,
-        password: credentials.password
-      })
+      body: formData
     });
   }
 
