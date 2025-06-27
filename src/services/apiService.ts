@@ -1,5 +1,4 @@
-
-const API_BASE_URL = 'http://77.37.120.36:8000';
+const API_BASE_URL = 'https://77.37.120.36:8000';
 
 export interface User {
   email: string;
