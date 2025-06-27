@@ -41,10 +41,19 @@ class ApiService {
     try {
       console.log(`Making request to: ${url}`);
       console.log('Request options:', options);
+      console.log('Current origin:', window.location.origin);
+      console.log('Protocol mismatch check:', window.location.protocol === 'https:' && url.startsWith('http:'));
       
-      // Test if the backend is reachable first
+      // Check for mixed content issue
+      if (window.location.protocol === 'https:' && url.startsWith('http:')) {
+        console.warn('Mixed content detected: HTTPS frontend trying to connect to HTTP backend');
+        return { 
+          error: 'Mixed content error: Cannot connect from HTTPS site to HTTP backend. Please use HTTPS for your backend or run this app on HTTP.' 
+        };
+      }
+      
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       const response = await fetch(url, {
         ...options,
@@ -84,7 +93,15 @@ class ApiService {
           return { error: 'Request timeout - server took too long to respond' };
         }
         if (error.message.includes('Failed to fetch')) {
-          return { error: 'Cannot connect to server. Please check if the backend is running and accessible.' };
+          return { 
+            error: `Cannot connect to server. This might be due to:
+1. Mixed content issue (HTTPS frontend → HTTP backend)
+2. CORS configuration 
+3. Network connectivity
+4. Backend not running
+
+Current setup: ${window.location.protocol} frontend → ${url}` 
+          };
         }
         if (error.message.includes('CORS')) {
           return { error: 'CORS error - backend needs to allow requests from this domain' };
@@ -148,7 +165,7 @@ class ApiService {
       
       const token = localStorage.getItem('auth_token');
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for file upload
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       
       const response = await fetch(`${API_BASE_URL}/api/v1/upload`, {
         method: 'POST',
