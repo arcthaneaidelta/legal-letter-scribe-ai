@@ -6,6 +6,8 @@ import DemandLetterGenerator from "@/components/demand-letter/DemandLetterGenera
 import EnhancedDemandGenerator from "@/components/demand-letter/EnhancedDemandGenerator";
 import ChatTraining from "@/components/demand-letter/ChatTraining";
 import Settings from "@/components/demand-letter/Settings";
+import BackendExcelUpload from "@/components/demand-letter/BackendExcelUpload";
+import BackendTemplateRenderer from "@/components/demand-letter/BackendTemplateRenderer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -57,14 +59,24 @@ const DemandLetterApp = ({ onLogout }: DemandLetterAppProps) => {
 
       <div className="max-w-7xl mx-auto p-6">
         <Card className="p-6">
-          <Tabs defaultValue="template" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+          <Tabs defaultValue="backend-excel" className="w-full">
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="backend-excel">Backend Excel</TabsTrigger>
+              <TabsTrigger value="backend-render">Backend Render</TabsTrigger>
               <TabsTrigger value="template">Template Upload</TabsTrigger>
               <TabsTrigger value="enhanced">Enhanced Generator</TabsTrigger>
               <TabsTrigger value="generator">Standard Generator</TabsTrigger>
               <TabsTrigger value="training">AI Training</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="backend-excel" className="mt-6">
+              <BackendExcelUpload />
+            </TabsContent>
+
+            <TabsContent value="backend-render" className="mt-6">
+              <BackendTemplateRenderer />
+            </TabsContent>
 
             <TabsContent value="template" className="mt-6">
               <TemplateUpload />

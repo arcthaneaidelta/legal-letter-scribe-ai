@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import DemandLetterApp from "./pages/DemandLetterApp";
 import NotFound from "./pages/NotFound";
 import LoginScreen from "./components/LoginScreen";
+import { apiService } from "./services/apiService";
 
 const queryClient = new QueryClient();
 
@@ -18,21 +19,31 @@ const App = () => {
 
   // Check for existing authentication on app load
   useEffect(() => {
-    const savedAuth = localStorage.getItem('legalApp_authenticated');
-    if (savedAuth === 'true') {
-      setIsAuthenticated(true);
-    }
-    setIsLoading(false);
+    const checkAuth = async () => {
+      if (apiService.isAuthenticated()) {
+        // Verify token with backend
+        const response = await apiService.testToken();
+        if (response.error) {
+          // Token is invalid, clear it
+          apiService.logout();
+          setIsAuthenticated(false);
+        } else {
+          setIsAuthenticated(true);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
   }, []);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
-    localStorage.setItem('legalApp_authenticated', 'true');
   };
 
   const handleLogout = () => {
+    apiService.logout();
     setIsAuthenticated(false);
-    localStorage.removeItem('legalApp_authenticated');
   };
 
   if (isLoading) {

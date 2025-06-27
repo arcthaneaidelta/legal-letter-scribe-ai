@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Scale } from 'lucide-react';
+import { apiService } from '@/services/apiService';
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -17,24 +18,26 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Hardcoded credentials
-    const validUsername = 'admin';
-    const validPassword = 'admin@legalcorner123';
-
-    setTimeout(() => {
-      if (username === validUsername && password === validPassword) {
+    try {
+      const response = await apiService.login({ username, password });
+      
+      if (response.access_token) {
         toast.success('Login successful!');
         onLogin();
       } else {
-        toast.error('Invalid credentials. Please try again.');
+        toast.error(response.error || 'Invalid credentials. Please try again.');
         setPassword('');
       }
+    } catch (error) {
+      toast.error('Login failed. Please try again.');
+      setPassword('');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
