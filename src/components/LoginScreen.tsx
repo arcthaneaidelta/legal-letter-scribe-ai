@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Scale } from 'lucide-react';
+import { Eye, EyeOff, Scale, Wifi, WifiOff } from 'lucide-react';
 import { apiService } from '@/services/apiService';
 
 interface LoginScreenProps {
@@ -15,12 +15,34 @@ interface LoginScreenProps {
 const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+
+  const testConnection = async () => {
+    setIsTestingConnection(true);
+    console.log('Testing backend connection...');
+    
+    try {
+      const response = await apiService.testConnection();
+      
+      if (response.error) {
+        toast.error(`Connection failed: ${response.error}`);
+        console.error('Connection test failed:', response.error);
+      } else {
+        toast.success('Backend connection successful!');
+        console.log('Connection test successful:', response);
+      }
+    } catch (error) {
+      console.error('Connection test error:', error);
+      toast.error('Connection test failed');
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,12 +51,6 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     try {
       if (isSignUp) {
         // Sign Up validation
-        if (!username.trim()) {
-          toast.error('Username is required');
-          setIsLoading(false);
-          return;
-        }
-        
         if (!email.trim()) {
           toast.error('Email is required');
           setIsLoading(false);
@@ -55,7 +71,6 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
         console.log('Starting registration process...');
         const response = await apiService.register({ 
-          username: username.trim(), 
           email: email.trim(), 
           password 
         });
@@ -63,13 +78,12 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         console.log('Registration response received:', response);
         
         if (response.error) {
-          toast.error(response.error);
+          toast.error(`Registration failed: ${response.error}`);
         } else {
           toast.success('Registration successful! Please sign in with your credentials.');
           setIsSignUp(false);
           setPassword('');
           setConfirmPassword('');
-          setUsername('');
         }
       } else {
         // Sign In validation
@@ -94,16 +108,17 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
         console.log('Login response received:', response);
         
         if (response.access_token) {
+          localStorage.setItem('auth_token', response.access_token);
           toast.success('Login successful!');
           onLogin();
         } else {
-          toast.error(response.error || 'Login failed. Please check your credentials.');
+          toast.error(`Login failed: ${response.error || 'Invalid credentials'}`);
           setPassword('');
         }
       }
     } catch (error) {
       console.error('Authentication error:', error);
-      toast.error('Connection failed. Please check if the backend server is running.');
+      toast.error('Connection failed. Please check backend connection.');
       setPassword('');
       if (isSignUp) setConfirmPassword('');
     } finally {
@@ -115,7 +130,6 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
     setIsSignUp(!isSignUp);
     setPassword('');
     setConfirmPassword('');
-    setUsername('');
     setEmail('');
   };
 
@@ -132,23 +146,28 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
           <p className="text-gray-600 text-sm">
             {isSignUp ? 'Create your account' : 'Sign in to access the demand letter generator'}
           </p>
+          
+          {/* Connection Test Button */}
+          <div className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={testConnection}
+              disabled={isTestingConnection}
+              className="text-xs"
+            >
+              {isTestingConnection ? (
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-2"></div>
+              ) : (
+                <Wifi className="h-3 w-3 mr-2" />
+              )}
+              Test Backend Connection
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username"
-                  required
-                />
-              </div>
-            )}
-            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

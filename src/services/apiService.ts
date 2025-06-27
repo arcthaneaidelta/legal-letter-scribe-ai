@@ -2,7 +2,6 @@
 const API_BASE_URL = 'http://77.37.120.36:8000';
 
 export interface User {
-  username: string;
   email: string;
   password: string;
 }
@@ -38,92 +37,108 @@ class ApiService {
     };
   }
 
-  // Auth endpoints
-  async register(userData: User): Promise<ApiResponse> {
+  private async makeRequest(url: string, options: RequestInit): Promise<ApiResponse> {
     try {
-      console.log('Attempting registration with:', { email: userData.email, username: userData.username });
+      console.log(`Making request to: ${url}`);
+      console.log('Request options:', options);
       
-      const response = await fetch(`${API_BASE_URL}/api/v1/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+      // Test if the backend is reachable first
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
         mode: 'cors',
-        body: JSON.stringify(userData)
+        credentials: 'omit'
       });
-
-      console.log('Registration response status:', response.status);
+      
+      clearTimeout(timeoutId);
+      console.log(`Response status: ${response.status}`);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
-        const errorData = await response.text();
-        console.log('Registration error response:', errorData);
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.log('Error response body:', errorText);
+        
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.detail || errorJson.message || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        
+        return { error: errorMessage };
       }
 
       const data = await response.json();
-      console.log('Registration successful:', data);
+      console.log('Success response:', data);
       return data;
+      
     } catch (error) {
-      console.error('Registration error:', error);
-      return { error: error instanceof Error ? error.message : 'Registration failed. Please check your connection.' };
+      console.error('Request failed:', error);
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          return { error: 'Request timeout - server took too long to respond' };
+        }
+        if (error.message.includes('Failed to fetch')) {
+          return { error: 'Cannot connect to server. Please check if the backend is running and accessible.' };
+        }
+        if (error.message.includes('CORS')) {
+          return { error: 'CORS error - backend needs to allow requests from this domain' };
+        }
+        return { error: error.message };
+      }
+      
+      return { error: 'Unknown network error occurred' };
     }
+  }
+
+  // Test connectivity to the backend
+  async testConnection(): Promise<ApiResponse> {
+    console.log('Testing backend connectivity...');
+    return this.makeRequest(`${API_BASE_URL}/`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+  }
+
+  // Auth endpoints
+  async register(userData: User): Promise<ApiResponse> {
+    console.log('Attempting registration with:', { email: userData.email });
+    
+    return this.makeRequest(`${API_BASE_URL}/api/v1/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(userData)
+    });
   }
 
   async login(credentials: LoginCredentials): Promise<ApiResponse> {
-    try {
-      console.log('Attempting login with email:', credentials.email);
-      
-      const response = await fetch(`${API_BASE_URL}/api/v1/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        mode: 'cors',
-        body: JSON.stringify(credentials)
-      });
-
-      console.log('Login response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.log('Login error response:', errorData);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Login response:', data);
-      
-      if (data.access_token) {
-        localStorage.setItem('auth_token', data.access_token);
-        console.log('Token stored successfully');
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Login error:', error);
-      return { error: error instanceof Error ? error.message : 'Login failed. Please check your connection.' };
-    }
+    console.log('Attempting login with email:', credentials.email);
+    
+    return this.makeRequest(`${API_BASE_URL}/api/v1/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(credentials)
+    });
   }
 
   async testToken(): Promise<ApiResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/test-token`, {
-        method: 'GET',
-        headers: this.getAuthHeaders(),
-        mode: 'cors'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Token validation error:', error);
-      return { error: 'Token validation failed' };
-    }
+    return this.makeRequest(`${API_BASE_URL}/api/v1/test-token`, {
+      method: 'GET',
+      headers: this.getAuthHeaders()
+    });
   }
 
   async uploadExcel(file: File): Promise<ApiResponse> {
@@ -132,82 +147,55 @@ class ApiService {
       formData.append('file', file);
       
       const token = localStorage.getItem('auth_token');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for file upload
+      
       const response = await fetch(`${API_BASE_URL}/api/v1/upload`, {
         method: 'POST',
         headers: {
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         mode: 'cors',
+        credentials: 'omit',
+        signal: controller.signal,
         body: formData
       });
       
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.log('Upload error response:', errorText);
+        return { error: `Upload failed: HTTP ${response.status}` };
       }
       
       return await response.json();
     } catch (error) {
       console.error('File upload error:', error);
-      return { error: 'File upload failed' };
+      return { error: 'File upload failed - network error' };
     }
   }
 
   async checkFileStatus(fileId: string): Promise<ApiResponse<FileStatus>> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/status/${fileId}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders(),
-        mode: 'cors'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Status check error:', error);
-      return { error: 'Status check failed' };
-    }
+    return this.makeRequest(`${API_BASE_URL}/api/v1/status/${fileId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders()
+    });
   }
 
   async renderTemplate(templateData: any): Promise<ApiResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/render_template/`, {
-        method: 'POST',
-        headers: this.getAuthHeaders(),
-        mode: 'cors',
-        body: JSON.stringify(templateData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Template rendering error:', error);
-      return { error: 'Template rendering failed' };
-    }
+    return this.makeRequest(`${API_BASE_URL}/api/v1/render_template/`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(templateData)
+    });
   }
 
   async getRenderedTemplate(fileId: string): Promise<ApiResponse> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/get_rendered_template/${fileId}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders(),
-        mode: 'cors'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Get rendered template error:', error);
-      return { error: 'Failed to get rendered template' };
-    }
+    return this.makeRequest(`${API_BASE_URL}/api/v1/get_rendered_template/${fileId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders()
+    });
   }
 
   logout() {
