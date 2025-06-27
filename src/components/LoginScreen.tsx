@@ -28,46 +28,95 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
 
     try {
       if (isSignUp) {
-        // Sign Up
+        // Sign Up validation
+        if (!username.trim()) {
+          toast.error('Username is required');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!email.trim()) {
+          toast.error('Email is required');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (password.length < 6) {
+          toast.error('Password must be at least 6 characters long');
+          setIsLoading(false);
+          return;
+        }
+        
         if (password !== confirmPassword) {
           toast.error('Passwords do not match');
           setIsLoading(false);
           return;
         }
 
+        console.log('Starting registration process...');
         const response = await apiService.register({ 
-          username, 
-          email, 
+          username: username.trim(), 
+          email: email.trim(), 
           password 
         });
         
+        console.log('Registration response received:', response);
+        
         if (response.error) {
-          toast.error(response.error || 'Registration failed. Please try again.');
+          toast.error(response.error);
         } else {
-          toast.success('Registration successful! Please sign in.');
+          toast.success('Registration successful! Please sign in with your credentials.');
           setIsSignUp(false);
           setPassword('');
           setConfirmPassword('');
+          setUsername('');
         }
       } else {
-        // Sign In
-        const response = await apiService.login({ email, password });
+        // Sign In validation
+        if (!email.trim()) {
+          toast.error('Email is required');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!password) {
+          toast.error('Password is required');
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('Starting login process...');
+        const response = await apiService.login({ 
+          email: email.trim(), 
+          password 
+        });
+        
+        console.log('Login response received:', response);
         
         if (response.access_token) {
           toast.success('Login successful!');
           onLogin();
         } else {
-          toast.error(response.error || 'Invalid credentials. Please try again.');
+          toast.error(response.error || 'Login failed. Please check your credentials.');
           setPassword('');
         }
       }
     } catch (error) {
-      toast.error(isSignUp ? 'Registration failed. Please try again.' : 'Login failed. Please try again.');
+      console.error('Authentication error:', error);
+      toast.error('Connection failed. Please check if the backend server is running.');
       setPassword('');
       if (isSignUp) setConfirmPassword('');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const switchMode = () => {
+    setIsSignUp(!isSignUp);
+    setPassword('');
+    setConfirmPassword('');
+    setUsername('');
+    setEmail('');
   };
 
   return (
@@ -107,7 +156,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                placeholder="Enter your email address"
                 required
               />
             </div>
@@ -183,12 +232,9 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
               <Button
                 type="button"
                 variant="link"
-                onClick={() => {
-                  setIsSignUp(!isSignUp);
-                  setPassword('');
-                  setConfirmPassword('');
-                }}
+                onClick={switchMode}
                 className="text-sm"
+                disabled={isLoading}
               >
                 {isSignUp 
                   ? 'Already have an account? Sign In' 
