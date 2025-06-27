@@ -1,4 +1,3 @@
-
 const API_BASE_URL = 'http://77.37.120.36:8000';
 
 export interface User {
@@ -8,7 +7,7 @@ export interface User {
 }
 
 export interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -16,6 +15,10 @@ export interface ApiResponse<T = any> {
   data?: T;
   message?: string;
   error?: string;
+  access_token?: string;
+  file_id?: string;
+  id?: string;
+  rendered_content?: string;
 }
 
 export interface FileStatus {
@@ -78,7 +81,6 @@ class ApiService {
     }
   }
 
-  // Excel endpoints
   async uploadExcel(file: File): Promise<ApiResponse> {
     try {
       const formData = new FormData();
@@ -110,7 +112,6 @@ class ApiService {
     }
   }
 
-  // Template rendering endpoints
   async renderTemplate(templateData: any): Promise<ApiResponse> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/render_template/`, {
@@ -136,7 +137,6 @@ class ApiService {
     }
   }
 
-  // Utility methods
   logout() {
     localStorage.removeItem('auth_token');
   }
