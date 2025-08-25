@@ -9,15 +9,11 @@ import Settings from "@/components/demand-letter/Settings";
 import BackendExcelUpload from "@/components/demand-letter/BackendExcelUpload";
 import BackendTemplateRenderer from "@/components/demand-letter/BackendTemplateRenderer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 
-interface DemandLetterAppProps {
-  onLogout?: () => void;
-}
-
-const DemandLetterApp = ({ onLogout }: DemandLetterAppProps) => {
+const DemandLetterApp = () => {
   const [csvData, setCsvData] = useState<any[]>([]);
   const [selectedPlaintiff, setSelectedPlaintiff] = useState(0);
 
@@ -42,17 +38,6 @@ const DemandLetterApp = ({ onLogout }: DemandLetterAppProps) => {
                 </p>
               </div>
             </div>
-            {onLogout && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onLogout}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
-            )}
           </div>
         </div>
       </div>

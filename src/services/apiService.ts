@@ -6,10 +6,6 @@ export interface User {
   password: string;
 }
 
-export interface LoginCredentials {
-  username: string;
-  password: string;
-}
 
 export interface ApiResponse<T = any> {
   data?: T;
@@ -28,12 +24,10 @@ export interface FileStatus {
 }
 
 class ApiService {
-  private getAuthHeaders() {
-    const token = localStorage.getItem('auth_token');
+  private getHeaders() {
     return {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
+      'Accept': 'application/json'
     };
   }
 
@@ -131,62 +125,17 @@ Current setup: ${window.location.protocol} frontend → ${url}`
     });
   }
 
-  // Auth endpoints
-  async register(userData: User): Promise<ApiResponse> {
-    console.log('Attempting registration with:', { name: userData.name, email: userData.email });
-    
-    return this.makeRequest(`${API_BASE_URL}/api/v1/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        name: userData.name,
-        email: userData.email,
-        password: userData.password
-      })
-    });
-  }
-
-  async login(credentials: LoginCredentials): Promise<ApiResponse> {
-    console.log('Attempting login with username:', credentials.username);
-    
-    // Try form-data format first (common for OAuth2)
-    const formData = new FormData();
-    formData.append('username', credentials.username);
-    formData.append('password', credentials.password);
-    
-    return this.makeRequest(`${API_BASE_URL}/api/v1/login`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-      },
-      body: formData
-    });
-  }
-
-  async testToken(): Promise<ApiResponse> {
-    return this.makeRequest(`${API_BASE_URL}/api/v1/test-token`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
-  }
 
   async uploadExcel(file: File): Promise<ApiResponse> {
     try {
       const formData = new FormData();
       formData.append('file', file);
       
-      const token = localStorage.getItem('auth_token');
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
       
       const response = await fetch(`${API_BASE_URL}/api/v1/upload`, {
         method: 'POST',
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
         mode: 'cors',
         credentials: 'omit',
         signal: controller.signal,
@@ -211,14 +160,14 @@ Current setup: ${window.location.protocol} frontend → ${url}`
   async checkFileStatus(fileId: string): Promise<ApiResponse<FileStatus>> {
     return this.makeRequest(`${API_BASE_URL}/api/v1/status/${fileId}`, {
       method: 'GET',
-      headers: this.getAuthHeaders()
+      headers: this.getHeaders()
     });
   }
 
   async renderTemplate(templateData: any): Promise<ApiResponse> {
     return this.makeRequest(`${API_BASE_URL}/api/v1/render_template/`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: this.getHeaders(),
       body: JSON.stringify(templateData)
     });
   }
@@ -226,16 +175,8 @@ Current setup: ${window.location.protocol} frontend → ${url}`
   async getRenderedTemplate(fileId: string): Promise<ApiResponse> {
     return this.makeRequest(`${API_BASE_URL}/api/v1/get_rendered_template/${fileId}`, {
       method: 'GET',
-      headers: this.getAuthHeaders()
+      headers: this.getHeaders()
     });
-  }
-
-  logout() {
-    localStorage.removeItem('auth_token');
-  }
-
-  isAuthenticated(): boolean {
-    return !!localStorage.getItem('auth_token');
   }
 }
 
